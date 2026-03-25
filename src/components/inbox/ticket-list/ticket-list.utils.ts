@@ -22,6 +22,19 @@ export function formatTicketListWhen(iso: string): string {
   }
 }
 
+/** Vision UI–style short date (DD/MM/YY). */
+export function formatTicketListDateShort(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yy = String(d.getFullYear()).slice(-2);
+    return `${dd}/${mm}/${yy}`;
+  } catch {
+    return "—";
+  }
+}
+
 export function analysisFromAnalyzeApi(
   data: AnalyzeReviewApiResponse,
 ): NonNullable<InboxReview["analysis"]> | null {

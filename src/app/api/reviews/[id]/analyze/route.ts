@@ -1,6 +1,6 @@
 import type { AnalysisResult } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { analyzeReview } from "@/lib/ai";
+import { persistAnalysisForReview } from "@/lib/analyze-review-persist";
 import { prisma } from "@/lib/prisma";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -16,40 +16,17 @@ export async function POST(
     return NextResponse.json({ error: "Missing review id" }, { status: 400 });
   }
 
-  const review = await prisma.review.findUnique({
+  const exists = await prisma.review.findUnique({
     where: { id: id.trim() },
-    select: { id: true, content: true },
+    select: { id: true },
   });
 
-  if (!review) {
+  if (!exists) {
     return NextResponse.json({ error: "Review not found" }, { status: 404 });
   }
 
   try {
-    const ai = await analyzeReview(review.content);
-    const analysis = await prisma.analysisResult.upsert({
-      where: { reviewId: review.id },
-      create: {
-        reviewId: review.id,
-        sentimentScore: ai.sentimentScore,
-        isCritical: ai.isCritical,
-        category: ai.category,
-        summary: ai.summary,
-        draftEmpathetic: ai.drafts.empathetic,
-        draftOfficial: ai.drafts.official,
-        draftAction: ai.drafts.action_oriented,
-      },
-      update: {
-        sentimentScore: ai.sentimentScore,
-        isCritical: ai.isCritical,
-        category: ai.category,
-        summary: ai.summary,
-        draftEmpathetic: ai.drafts.empathetic,
-        draftOfficial: ai.drafts.official,
-        draftAction: ai.drafts.action_oriented,
-      },
-    });
-
+    const analysis = await persistAnalysisForReview(id.trim());
     return NextResponse.json(analysis);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Analysis failed";

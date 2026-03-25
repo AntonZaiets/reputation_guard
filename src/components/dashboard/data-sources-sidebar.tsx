@@ -16,6 +16,8 @@ import Typography from "@mui/material/Typography";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import type { DataSourceId } from "@/lib/data-sources";
+import { DATA_SOURCES_SIDEBAR_WIDTH_PX } from "@/lib/data-sources-sidebar-layout";
+import { VISION } from "@/lib/vision-ui/colors";
 
 const SOURCE_OPTIONS: {
   id: DataSourceId;
@@ -27,20 +29,29 @@ const SOURCE_OPTIONS: {
   { id: "trustpilot", label: "Trustpilot", Icon: StarIcon },
 ];
 
-const SIDEBAR_WIDTH = 320;
-
-const checkedPaperSx = {
-  bgcolor: "rgba(200, 230, 201, 0.45)",
-  borderColor: "success.light",
+const checkedPaperSxDark = {
+  bgcolor: "rgba(0, 117, 255, 0.12)",
+  borderColor: "rgba(57, 147, 254, 0.45)",
   borderWidth: 1,
-  borderStyle: "solid",
+  borderStyle: "solid" as const,
 };
 
-const uncheckedPaperSx = {
-  bgcolor: "grey.50",
-  borderColor: "divider",
+const uncheckedPaperSxDark = {
+  bgcolor: "rgba(6, 11, 40, 0.55)",
+  borderColor: "rgba(255, 255, 255, 0.1)",
   borderWidth: 1,
-  borderStyle: "solid",
+  borderStyle: "solid" as const,
+};
+
+const brandFieldDarkSx = {
+  "& .MuiOutlinedInput-root": {
+    color: "#fff",
+    "& fieldset": { borderColor: "rgba(255,255,255,0.2)" },
+    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.32)" },
+    "&.Mui-focused fieldset": { borderColor: "rgba(0, 117, 255, 0.75)" },
+  },
+  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.65)" },
+  "& .MuiInputLabel-root.Mui-focused": { color: "#7ab8ff" },
 };
 
 export type DataSourcesSidebarProps = {
@@ -226,21 +237,26 @@ export function DataSourcesSidebar({
 
   return (
     <Box
+      id="data-sources"
       component="aside"
       sx={{
-        width: SIDEBAR_WIDTH,
+        width: DATA_SOURCES_SIDEBAR_WIDTH_PX,
+        flex: { xs: "none", md: 1 },
         flexShrink: 0,
-        bgcolor: "background.paper",
-        borderLeft: 1,
-        borderColor: "divider",
-        px: 2.5,
-        py: 3,
+        minHeight: { md: 0 },
+        height: "100%",
+        bgcolor: "rgba(8, 12, 32, 0.92)",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        borderRadius: { xs: 2.5, md: "22px 0 0 22px" },
+        px: { xs: 2, md: 2 },
+        py: { xs: 2, md: 2 },
         display: "flex",
         flexDirection: "column",
         gap: 2,
+        boxSizing: "border-box",
       }}
     >
-      <Typography variant="h6" fontWeight={700}>
+      <Typography variant="h6" fontWeight={700} sx={{ color: "#fff" }}>
         Data Sources
       </Typography>
 
@@ -252,6 +268,7 @@ export function DataSourcesSidebar({
         variant="outlined"
         size="small"
         disabled={formDisabled}
+        sx={brandFieldDarkSx}
       />
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
@@ -266,7 +283,7 @@ export function DataSourcesSidebar({
                 py: 0.5,
                 borderRadius: 2,
                 transition: "background-color 0.15s ease, border-color 0.15s ease",
-                ...(checked ? checkedPaperSx : uncheckedPaperSx),
+                ...(checked ? checkedPaperSxDark : uncheckedPaperSxDark),
               }}
             >
               <FormControlLabel
@@ -276,12 +293,18 @@ export function DataSourcesSidebar({
                     onChange={() => toggleSource(id)}
                     disabled={formDisabled}
                     size="small"
+                    sx={{
+                      color: "rgba(255,255,255,0.55)",
+                      "&.Mui-checked": { color: VISION.info.focus },
+                    }}
                   />
                 }
                 label={
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <Icon fontSize="small" color="action" />
-                    <Typography variant="body2">{label}</Typography>
+                    <Icon fontSize="small" sx={{ color: "rgba(255,255,255,0.55)" }} />
+                    <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.88)" }}>
+                      {label}
+                    </Typography>
                   </Box>
                 }
                 sx={{ m: 0, width: "100%", mr: 0 }}
@@ -293,23 +316,26 @@ export function DataSourcesSidebar({
 
       <Box sx={{ mt: "auto", pt: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
         <Button
-          variant="contained"
+          variant="outlined"
           fullWidth
           disabled={formDisabled || saving}
           onClick={() => void handleApply()}
           sx={{
             borderRadius: 2,
             py: 1.25,
-            bgcolor: "#94a3b8",
-            color: "common.white",
+            fontWeight: 600,
+            textTransform: "none",
+            borderColor: "rgba(0, 117, 255, 0.65)",
+            color: "rgba(255, 255, 255, 0.95)",
             boxShadow: "none",
             "&:hover": {
-              bgcolor: "#7c8ca0",
+              borderColor: VISION.info.focus,
+              bgcolor: "rgba(0, 117, 255, 0.12)",
               boxShadow: "none",
             },
             "&.Mui-disabled": {
-              bgcolor: "action.disabledBackground",
-              color: "action.disabled",
+              borderColor: "rgba(255,255,255,0.12)",
+              color: "rgba(255,255,255,0.35)",
             },
           }}
         >
@@ -329,8 +355,18 @@ export function DataSourcesSidebar({
             borderRadius: 2,
             py: 1.35,
             fontWeight: 700,
+            textTransform: "none",
+            bgcolor: VISION.info.main,
+            color: "#fff",
             boxShadow: "none",
-            "&:hover": { boxShadow: "none" },
+            "&:hover": {
+              bgcolor: "#0066dd",
+              boxShadow: "none",
+            },
+            "&.Mui-disabled": {
+              bgcolor: "rgba(255,255,255,0.08)",
+              color: "rgba(255,255,255,0.35)",
+            },
           }}
         >
           {syncing ? "Syncing…" : "Sync Latest Reviews"}
@@ -338,7 +374,17 @@ export function DataSourcesSidebar({
       </Box>
 
       {!apiWorkspaceId && !disabled ? (
-        <Alert severity="info" sx={{ mt: 1 }}>
+        <Alert
+          severity="info"
+          variant="outlined"
+          sx={{
+            mt: 1,
+            color: "rgba(255,255,255,0.9)",
+            borderColor: "rgba(0, 117, 255, 0.45)",
+            bgcolor: "rgba(0, 117, 255, 0.08)",
+            "& .MuiAlert-icon": { color: VISION.info.main },
+          }}
+        >
           Create a workspace in the database to enable data source settings.
         </Alert>
       ) : null}

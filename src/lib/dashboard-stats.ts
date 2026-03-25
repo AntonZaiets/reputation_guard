@@ -14,6 +14,8 @@ export type CategoryCount = {
 
 export type DashboardStats = {
   totalReviews: number;
+  /** Reviews in this workspace with no AnalysisResult yet (charts need AI rows). */
+  pendingAnalysisCount: number;
   averageSentiment: number | null;
   criticalIssuesCount: number;
   sentimentByDay: SentimentTrendPoint[];
@@ -25,6 +27,7 @@ export type DashboardStats = {
 
 const EMPTY_STATS: Omit<DashboardStats, "dbUnavailable" | "dbMessage"> = {
   totalReviews: 0,
+  pendingAnalysisCount: 0,
   averageSentiment: null,
   criticalIssuesCount: 0,
   sentimentByDay: [],
@@ -51,8 +54,11 @@ export async function getDashboardStats(
   }
 
   try {
-    const [totalReviews, analyses] = await Promise.all([
+    const [totalReviews, pendingAnalysisCount, analyses] = await Promise.all([
       prisma.review.count({ where: { workspaceId } }),
+      prisma.review.count({
+        where: { workspaceId, analysis: { is: null } },
+      }),
       prisma.analysisResult.findMany({
         where: { review: { workspaceId } },
         select: {
@@ -60,8 +66,9 @@ export async function getDashboardStats(
           isCritical: true,
           category: true,
           createdAt: true,
+          review: { select: { createdAt: true } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { review: { createdAt: "asc" } },
       }),
     ]);
 
@@ -72,9 +79,10 @@ export async function getDashboardStats(
         ? analyses.reduce((sum, a) => sum + a.sentimentScore, 0) / analyses.length
         : null;
 
+    /** Trend by calendar day of the review (not AI run time), so batch-analyze doesn’t collapse to one dot. */
     const dayBuckets = new Map<string, { sum: number; count: number }>();
     for (const a of analyses) {
-      const key = a.createdAt.toISOString().slice(0, 10);
+      const key = a.review.createdAt.toISOString().slice(0, 10);
       const cur = dayBuckets.get(key) ?? { sum: 0, count: 0 };
       cur.sum += a.sentimentScore;
       cur.count += 1;
@@ -101,6 +109,7 @@ export async function getDashboardStats(
 
     return {
       totalReviews,
+      pendingAnalysisCount,
       averageSentiment:
         averageSentiment !== null ? Math.round(averageSentiment * 10) / 10 : null,
       criticalIssuesCount,

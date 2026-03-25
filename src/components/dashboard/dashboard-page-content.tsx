@@ -1,15 +1,28 @@
+import Psychology from "@mui/icons-material/Psychology";
+import ReportProblem from "@mui/icons-material/ReportProblem";
+import Reviews from "@mui/icons-material/Reviews";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import { Suspense } from "react";
 import { CategoryDistributionChart } from "@/components/charts/category-distribution-chart";
 import { SentimentTrendChart } from "@/components/charts/sentiment-trend-chart";
+import { DashboardAnalyzePendingBanner } from "@/components/dashboard/dashboard-analyze-pending-banner";
 import { DataSourcesSidebar } from "@/components/dashboard/data-sources-sidebar";
+import { DATA_SOURCES_SIDEBAR_WIDTH_PX } from "@/lib/data-sources-sidebar-layout";
 import { WorkspaceSelector } from "@/components/layout/workspace-selector";
+import {
+  DashboardWelcomeCard,
+  MiniStatisticsCard,
+  ReputationPulseCard,
+  SentimentSatisfactionCard,
+} from "@/components/vision-ui";
+import { VISION } from "@/lib/vision-ui/colors";
+import { visionAppText } from "@/lib/vision-ui/shell";
+import { visionDashboardCardSx } from "@/lib/vision-ui/vision-card-sx";
 import {
   type DashboardStats,
   getDashboardStats,
@@ -20,55 +33,6 @@ import {
   isPrismaConnectionError,
 } from "@/lib/is-prisma-connection-error";
 import { prisma } from "@/lib/prisma";
-
-function MetricCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle?: string;
-}) {
-  return (
-    <Card
-      elevation={0}
-      sx={{
-        height: "100%",
-        border: 1,
-        borderColor: "divider",
-        borderRadius: 2,
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-        <Typography
-          variant="overline"
-          color="text.secondary"
-          sx={{ fontWeight: 600, letterSpacing: 0.5 }}
-        >
-          {title}
-        </Typography>
-        <Typography
-          variant="h3"
-          component="p"
-          sx={{
-            mt: 1,
-            fontWeight: 700,
-            fontSize: { xs: "2rem", sm: "2.75rem" },
-            lineHeight: 1.15,
-          }}
-        >
-          {value}
-        </Typography>
-        {subtitle ? (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            {subtitle}
-          </Typography>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
-}
 
 export type DashboardSearchParams = { workspaceId?: string };
 
@@ -121,6 +85,8 @@ export async function DashboardPageContent({
       ? `${stats.averageSentiment}`
       : "—";
 
+  const hasAnalyses = !stats.dbUnavailable && stats.averageSentiment != null;
+
   return (
     <Box
       component="main"
@@ -129,8 +95,11 @@ export async function DashboardPageContent({
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
         alignItems: "stretch",
-        bgcolor: "grey.50",
+        bgcolor: "transparent",
         minHeight: 0,
+        minWidth: 0,
+        height: "100%",
+        maxWidth: "100%",
       }}
     >
       <Box
@@ -152,11 +121,16 @@ export async function DashboardPageContent({
             }}
           >
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography variant="h4" component="h1" fontWeight={700}>
+              <Typography
+                variant="h4"
+                component="h1"
+                fontWeight={700}
+                sx={{ color: visionAppText.title }}
+              >
                 Analytics dashboard
               </Typography>
-              <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-                Live metrics from your workspace reviews and AI analysis results.
+              <Typography variant="body1" sx={{ mt: 0.5, color: visionAppText.muted }}>
+                Vision-style overview of reviews, sentiment, and AI flags for the active workspace.
               </Typography>
             </Box>
             <Suspense
@@ -171,7 +145,10 @@ export async function DashboardPageContent({
                 />
               }
             >
-              <WorkspaceSelector resolvedWorkspaceId={activeWorkspace?.id ?? null} />
+              <WorkspaceSelector
+                resolvedWorkspaceId={activeWorkspace?.id ?? null}
+                darkSurface
+              />
             </Suspense>
           </Box>
 
@@ -223,34 +200,52 @@ export async function DashboardPageContent({
             </Alert>
           ) : null}
 
+          <DashboardAnalyzePendingBanner
+            workspaceId={activeWorkspace?.id ?? null}
+            pendingCount={stats.pendingAnalysisCount}
+            disabled={stats.dbUnavailable}
+          />
+
           <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <MetricCard
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <MiniStatisticsCard
                 title="Total reviews"
-                value={String(stats.totalReviews)}
-                subtitle={
-                  stats.dbUnavailable
-                    ? "Connect the database to load data"
-                    : "All ingested feedback records"
-                }
+                count={String(stats.totalReviews)}
+                icon={<Reviews sx={{ fontSize: 22, color: "#fff" }} />}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <MetricCard
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <MiniStatisticsCard
                 title="Average sentiment"
-                value={avgLabel}
-                subtitle={
-                  stats.averageSentiment != null
-                    ? "Mean score across analyzed reviews (1–100)"
-                    : "No analysis results yet"
-                }
+                count={avgLabel}
+                icon={<Psychology sx={{ fontSize: 22, color: "#fff" }} />}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <MetricCard
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <MiniStatisticsCard
                 title="Critical issues"
-                value={String(stats.criticalIssuesCount)}
-                subtitle="Analyses flagged as critical"
+                count={String(stats.criticalIssuesCount)}
+                icon={<ReportProblem sx={{ fontSize: 22, color: "#fff" }} />}
+              />
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2.25} sx={{ mb: { xs: 2, sm: 3 } }}>
+            <Grid size={{ xs: 12, lg: 12, xl: 5 }}>
+              <DashboardWelcomeCard workspaceLabel={activeWorkspace?.brandKeyword ?? null} />
+            </Grid>
+            <Grid size={{ xs: 12, lg: 6, xl: 4 }}>
+              <SentimentSatisfactionCard
+                averageSentiment={stats.averageSentiment}
+                hasAnalyses={hasAnalyses}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, lg: 6, xl: 3 }}>
+              <ReputationPulseCard
+                totalReviews={stats.totalReviews}
+                criticalIssuesCount={stats.criticalIssuesCount}
+                averageSentiment={stats.averageSentiment}
+                hasAnalyses={hasAnalyses}
               />
             </Grid>
           </Grid>
@@ -260,22 +255,21 @@ export async function DashboardPageContent({
               <Card
                 elevation={0}
                 sx={{
-                  border: 1,
-                  borderColor: "divider",
-                  borderRadius: 2,
+                  ...visionDashboardCardSx,
                   height: "100%",
                 }}
               >
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: "#fff" }}>
                     Sentiment trend
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Daily average sentiment score based on analysis timestamps.
+                  <Typography variant="body2" sx={{ mb: 2, color: VISION.text.main }}>
+                    Daily average sentiment by review date (ingested reviews), using AI scores.
                   </Typography>
                   <SentimentTrendChart
                     data={stats.sentimentByDay}
                     rawReviewCount={stats.totalReviews}
+                    chartVariant="dark"
                   />
                 </CardContent>
               </Card>
@@ -284,22 +278,21 @@ export async function DashboardPageContent({
               <Card
                 elevation={0}
                 sx={{
-                  border: 1,
-                  borderColor: "divider",
-                  borderRadius: 2,
+                  ...visionDashboardCardSx,
                   height: "100%",
                 }}
               >
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom>
+                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: "#fff" }}>
                     Issues by category
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 2, color: VISION.text.main }}>
                     Distribution of AI-assigned categories (donut + bar).
                   </Typography>
                   <CategoryDistributionChart
                     data={stats.categoryCounts}
                     rawReviewCount={stats.totalReviews}
+                    chartVariant="dark"
                   />
                 </CardContent>
               </Card>
@@ -308,28 +301,43 @@ export async function DashboardPageContent({
         </Box>
       </Box>
 
-      <Suspense
-        fallback={
-          <Box
-            component="aside"
-            sx={{
-              width: 320,
-              flexShrink: 0,
-              bgcolor: "background.paper",
-              borderLeft: 1,
-              borderColor: "divider",
-            }}
-          />
-        }
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignSelf: "stretch",
+          flexShrink: 0,
+          ml: { xs: 0, md: 2 },
+          minHeight: { md: 0 },
+          minWidth: 0,
+        }}
       >
-        <DataSourcesSidebar
-          key={activeWorkspace?.id ?? "no-workspace"}
-          workspaceId={activeWorkspace?.id ?? null}
-          initialBrandKeyword={activeWorkspace?.brandKeyword ?? null}
-          initialActiveSources={activeWorkspace?.activeSources ?? []}
-          disabled={stats.dbUnavailable}
-        />
-      </Suspense>
+        <Suspense
+          fallback={
+            <Box
+              component="aside"
+              sx={{
+                width: DATA_SOURCES_SIDEBAR_WIDTH_PX,
+                flex: { xs: "none", md: 1 },
+                minHeight: { md: 240 },
+                flexShrink: 0,
+                bgcolor: "rgba(8, 12, 32, 0.92)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
+                borderRadius: { xs: 2.5, md: "22px 0 0 22px" },
+                boxSizing: "border-box",
+              }}
+            />
+          }
+        >
+          <DataSourcesSidebar
+            key={activeWorkspace?.id ?? "no-workspace"}
+            workspaceId={activeWorkspace?.id ?? null}
+            initialBrandKeyword={activeWorkspace?.brandKeyword ?? null}
+            initialActiveSources={activeWorkspace?.activeSources ?? []}
+            disabled={stats.dbUnavailable}
+          />
+        </Suspense>
+      </Box>
     </Box>
   );
 }

@@ -24,7 +24,24 @@ import {
 import type { WorkspaceSelectorProps } from "./workspace-selector.types";
 import { useWorkspaceSelector } from "./use-workspace-selector";
 
-export function WorkspaceSelector({ resolvedWorkspaceId }: WorkspaceSelectorProps) {
+const selectDarkSx = {
+  color: "#fff",
+  "& .MuiOutlinedInput-notchedOutline": {
+    borderColor: "rgba(255,255,255,0.22)",
+  },
+  "&:hover .MuiOutlinedInput-notchedOutline": {
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+    borderColor: "rgba(0, 117, 255, 0.85)",
+  },
+  "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.75)" },
+} as const;
+
+export function WorkspaceSelector({
+  resolvedWorkspaceId,
+  darkSurface = false,
+}: WorkspaceSelectorProps) {
   const {
     workspaces,
     loadError,
@@ -48,11 +65,27 @@ export function WorkspaceSelector({ resolvedWorkspaceId }: WorkspaceSelectorProp
   return (
     <>
       <Box sx={workspaceSelectorRootBoxSx}>
-        <Typography variant="caption" color="text.secondary" sx={workspaceSelectorLabelSx}>
+        <Typography
+          variant="caption"
+          color={darkSurface ? undefined : "text.secondary"}
+          sx={{
+            ...workspaceSelectorLabelSx,
+            ...(darkSurface ? { color: "rgba(255,255,255,0.65)" } : {}),
+          }}
+        >
           Current Company
         </Typography>
         <FormControl size="small" fullWidth disabled={Boolean(loadError) && workspaces.length === 0}>
-          <InputLabel id="workspace-select-label">Company</InputLabel>
+          <InputLabel
+            id="workspace-select-label"
+            sx={
+              darkSurface
+                ? { color: "rgba(255,255,255,0.65)", "&.Mui-focused": { color: "#7ab8ff" } }
+                : undefined
+            }
+          >
+            Company
+          </InputLabel>
           <Select<string>
             labelId="workspace-select-label"
             id="workspace-select"
@@ -60,10 +93,15 @@ export function WorkspaceSelector({ resolvedWorkspaceId }: WorkspaceSelectorProp
             value={effectiveWorkspaceId}
             displayEmpty
             onChange={onSelectChange}
+            sx={darkSurface ? selectDarkSx : undefined}
             renderValue={(value) => {
               if (!value) {
                 return (
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color={darkSurface ? undefined : "text.secondary"}
+                    sx={darkSurface ? { color: "rgba(255,255,255,0.55)" } : undefined}
+                  >
                     {workspaces.length === 0 ? "No companies yet" : "Select a company"}
                   </Typography>
                 );
@@ -92,7 +130,14 @@ export function WorkspaceSelector({ resolvedWorkspaceId }: WorkspaceSelectorProp
           </Select>
         </FormControl>
         {loadError ? (
-          <Typography variant="caption" color="error" sx={workspaceSelectorLoadErrorSx}>
+          <Typography
+            variant="caption"
+            color={darkSurface ? undefined : "error"}
+            sx={{
+              ...workspaceSelectorLoadErrorSx,
+              ...(darkSurface ? { color: "#ff8a8a" } : {}),
+            }}
+          >
             {loadError}
           </Typography>
         ) : null}

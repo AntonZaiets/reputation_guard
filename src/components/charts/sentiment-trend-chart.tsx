@@ -19,6 +19,8 @@ export type SentimentTrendChartProps = {
   data: SentimentTrendPoint[];
   /** When positive and there is no trend data, explains that charts need AI analysis. */
   rawReviewCount?: number;
+  /** Light axes/tooltip for Vision-style dark dashboard cards. */
+  chartVariant?: "default" | "dark";
 };
 
 function formatDateLabel(isoDay: string) {
@@ -29,12 +31,25 @@ function formatDateLabel(isoDay: string) {
   });
 }
 
+const DARK_CHART = {
+  grid: "rgba(255,255,255,0.1)",
+  tick: "rgba(255,255,255,0.72)",
+  empty: "rgba(255,255,255,0.65)",
+  tooltipBg: "rgba(20, 24, 52, 0.96)",
+  tooltipBorder: "rgba(255,255,255,0.12)",
+} as const;
+
 export function SentimentTrendChart({
   data,
   rawReviewCount = 0,
+  chartVariant = "default",
 }: SentimentTrendChartProps) {
   const theme = useTheme();
   const primary = theme.palette.primary.main;
+  const dark = chartVariant === "dark";
+  const gridStroke = dark ? DARK_CHART.grid : theme.palette.divider;
+  const tickFill = dark ? DARK_CHART.tick : theme.palette.text.secondary;
+  const emptyColor = dark ? DARK_CHART.empty : undefined;
   const [clientReady, setClientReady] = useState(false);
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -55,10 +70,10 @@ export function SentimentTrendChart({
         }}
       >
         <Typography
-          color="text.secondary"
+          color={dark ? undefined : "text.secondary"}
           variant="body2"
           align="center"
-          sx={{ maxWidth: 440 }}
+          sx={{ maxWidth: 440, ...(emptyColor ? { color: emptyColor } : {}) }}
         >
           {showRawHint
             ? `This chart uses AI-analyzed reviews only. You already have ${rawReviewCount} raw review(s)—open Inbox, open a ticket, and use "Ask AI to Analyze & Reply" to build sentiment over time.`
@@ -74,34 +89,38 @@ export function SentimentTrendChart({
   }));
 
   return (
-    <Box sx={{ width: "100%", height: { xs: 280, sm: 320 } }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={chartData}
-          margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+    <Box sx={{ width: "100%" }}>
+      <Box sx={{ width: "100%", height: { xs: 280, sm: 320 } }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={chartData}
+            margin={{ top: 12, right: 10, left: 0, bottom: 10 }}
+          >
+          <CartesianGrid strokeDasharray="4 6" stroke={gridStroke} vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+            tick={{ fontSize: 12, fill: tickFill }}
             tickLine={false}
-            axisLine={{ stroke: theme.palette.divider }}
+            axisLine={{ stroke: gridStroke }}
           />
           <YAxis
             domain={[0, 100]}
-            tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+            tick={{ fontSize: 12, fill: tickFill }}
             tickLine={false}
-            axisLine={{ stroke: theme.palette.divider }}
+            axisLine={{ stroke: gridStroke }}
             width={36}
           />
           <Tooltip
             contentStyle={{
-              borderRadius: 8,
-              border: `1px solid ${theme.palette.divider}`,
+              borderRadius: 10,
+              border: `1px solid ${dark ? DARK_CHART.tooltipBorder : theme.palette.divider}`,
               boxShadow: theme.shadows[4],
+              backgroundColor: dark ? DARK_CHART.tooltipBg : undefined,
+              color: dark ? "#fff" : undefined,
+              padding: "8px 10px",
             }}
             formatter={(value) => [
-              typeof value === "number" ? String(value) : String(value ?? ""),
+              typeof value === "number" ? `${value}` : String(value ?? ""),
               "Avg. sentiment",
             ]}
             labelFormatter={(_, payload) => {
@@ -114,13 +133,32 @@ export function SentimentTrendChart({
           <Line
             type="monotone"
             dataKey="averageSentiment"
+            name="Avg. sentiment"
             stroke={primary}
-            strokeWidth={2}
-            dot={{ r: 3, fill: primary }}
-            activeDot={{ r: 5 }}
+            strokeWidth={3}
+            dot={{ r: 4, fill: primary, stroke: dark ? "#0b1437" : "#fff", strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: primary, stroke: dark ? "#0b1437" : "#fff", strokeWidth: 2 }}
+            isAnimationActive={false}
+            connectNulls
           />
-        </LineChart>
-      </ResponsiveContainer>
+          </LineChart>
+        </ResponsiveContainer>
+      </Box>
+      {data.length === 1 ? (
+        <Typography
+          variant="caption"
+          sx={{
+            mt: 1,
+            display: "block",
+            textAlign: "center",
+            px: 1,
+            ...(dark ? { color: DARK_CHART.empty } : { color: "text.secondary" }),
+          }}
+        >
+          All analyzed reviews fall on the same calendar day — the line appears once there are
+          averages for at least two different days (by review date).
+        </Typography>
+      ) : null}
     </Box>
   );
 }

@@ -2,6 +2,8 @@ import type { InboxReview } from "@/types/inbox";
 
 export type TicketListProps = {
   reviews: InboxReview[];
+  /** Dark glass table (home shell). Default keeps light surfaces for other routes. */
+  visualVariant?: "light" | "dark";
 };
 
 export type TicketListSnackbarState = {

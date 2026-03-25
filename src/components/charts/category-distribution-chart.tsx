@@ -21,10 +21,20 @@ import type { CategoryCount } from "@/lib/dashboard-stats";
 export type CategoryDistributionChartProps = {
   data: CategoryCount[];
   rawReviewCount?: number;
+  chartVariant?: "default" | "dark";
 };
 
+const DARK_CHART = {
+  grid: "rgba(255,255,255,0.1)",
+  tick: "rgba(255,255,255,0.72)",
+  empty: "rgba(255,255,255,0.65)",
+  tooltipBg: "rgba(20, 24, 52, 0.96)",
+  tooltipBorder: "rgba(255,255,255,0.12)",
+  pieStroke: "rgba(22, 26, 58, 0.95)",
+} as const;
+
 const PIE_COLORS = [
-  "#0f766e",
+  "#0075ff",
   "#4338ca",
   "#b45309",
   "#be123c",
@@ -37,8 +47,13 @@ const PIE_COLORS = [
 export function CategoryDistributionChart({
   data,
   rawReviewCount = 0,
+  chartVariant = "default",
 }: CategoryDistributionChartProps) {
   const theme = useTheme();
+  const dark = chartVariant === "dark";
+  const gridStroke = dark ? DARK_CHART.grid : theme.palette.divider;
+  const tickFill = dark ? DARK_CHART.tick : theme.palette.text.secondary;
+  const pieStroke = dark ? DARK_CHART.pieStroke : theme.palette.background.paper;
   const [clientReady, setClientReady] = useState(false);
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -59,10 +74,10 @@ export function CategoryDistributionChart({
         }}
       >
         <Typography
-          color="text.secondary"
+          color={dark ? undefined : "text.secondary"}
           variant="body2"
           align="center"
-          sx={{ maxWidth: 440 }}
+          sx={{ maxWidth: 440, ...(dark ? { color: DARK_CHART.empty } : {}) }}
         >
           {showRawHint
             ? `Categories come from AI analysis. With ${rawReviewCount} raw review(s), run "Ask AI to Analyze & Reply" in Inbox to populate this chart.`
@@ -76,6 +91,7 @@ export function CategoryDistributionChart({
     name: d.category,
     value: d.count,
   }));
+  const total = pieData.reduce((sum, p) => sum + p.value, 0);
 
   return (
     <Box
@@ -97,25 +113,48 @@ export function CategoryDistributionChart({
               nameKey="name"
               cx="50%"
               cy="50%"
-              innerRadius={52}
-              outerRadius={88}
-              paddingAngle={2}
+              innerRadius={58}
+              outerRadius={90}
+              paddingAngle={3}
               label={false}
             >
               {pieData.map((_, index) => (
                 <Cell
                   key={pieData[index].name}
                   fill={PIE_COLORS[index % PIE_COLORS.length]}
-                  stroke={theme.palette.background.paper}
+                  stroke={pieStroke}
                   strokeWidth={1}
                 />
               ))}
             </Pie>
+            <text
+              x="50%"
+              y="46%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={dark ? "#fff" : theme.palette.text.primary}
+              style={{ fontSize: 28, fontWeight: 700 }}
+            >
+              {total}
+            </text>
+            <text
+              x="50%"
+              y="58%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill={dark ? DARK_CHART.tick : theme.palette.text.secondary}
+              style={{ fontSize: 11, letterSpacing: "0.05em", textTransform: "uppercase" }}
+            >
+              analyses
+            </text>
             <Tooltip
               contentStyle={{
-                borderRadius: 8,
-                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 10,
+                border: `1px solid ${dark ? DARK_CHART.tooltipBorder : theme.palette.divider}`,
                 boxShadow: theme.shadows[4],
+                backgroundColor: dark ? DARK_CHART.tooltipBg : undefined,
+                color: dark ? "#fff" : undefined,
+                padding: "8px 10px",
               }}
             />
           </PieChart>
@@ -126,26 +165,37 @@ export function CategoryDistributionChart({
           <BarChart
             data={pieData}
             layout="vertical"
-            margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+            margin={{ top: 8, right: 20, left: 8, bottom: 8 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-            <XAxis type="number" allowDecimals={false} tick={{ fontSize: 12 }} />
+            <CartesianGrid strokeDasharray="4 6" stroke={gridStroke} vertical={false} />
+            <XAxis
+              type="number"
+              allowDecimals={false}
+              tick={{ fontSize: 12, fill: tickFill }}
+              axisLine={{ stroke: gridStroke }}
+            />
             <YAxis
               type="category"
               dataKey="name"
-              width={100}
-              tick={{ fontSize: 11, fill: theme.palette.text.secondary }}
+              width={118}
+              tickFormatter={(name: string) =>
+                name.length > 14 ? `${name.slice(0, 12)}…` : name
+              }
+              tick={{ fontSize: 11, fill: tickFill }}
               tickLine={false}
-              axisLine={{ stroke: theme.palette.divider }}
+              axisLine={{ stroke: gridStroke }}
             />
             <Tooltip
               contentStyle={{
-                borderRadius: 8,
-                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 10,
+                border: `1px solid ${dark ? DARK_CHART.tooltipBorder : theme.palette.divider}`,
                 boxShadow: theme.shadows[4],
+                backgroundColor: dark ? DARK_CHART.tooltipBg : undefined,
+                color: dark ? "#fff" : undefined,
+                padding: "8px 10px",
               }}
             />
-            <Bar dataKey="value" name="Reviews" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="value" name="Analyses" radius={[0, 8, 8, 0]} barSize={14}>
               {pieData.map((_, index) => (
                 <Cell
                   key={pieData[index].name}
