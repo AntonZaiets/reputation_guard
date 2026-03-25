@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id            String   @id @default(uuid())
+  name          String
+  brandKeyword  String?
+  activeSources String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  users   User[]
+  reviews Review[]
+}
+
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String?
+  role        Role     @default(AGENT)
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  source      String
+  authorId    String?
+  content     String   @db.Text
+  createdAt   DateTime @default(now())
+  workspaceId String
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  analysis  AnalysisResult?
+}
+
+model AnalysisResult {
+  id              String   @id @default(uuid())
+  reviewId        String   @unique
+  sentimentScore  Int
+  isCritical      Boolean  @default(false)
+  category        String
+  summary         String   @db.Text
+  draftEmpathetic String?  @db.Text
+  draftOfficial   String?  @db.Text
+  draftAction     String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+}
