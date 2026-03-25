@@ -1,26 +1,23 @@
 import Box from "@mui/material/Box";
-import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { Suspense } from "react";
 import {
   DashboardPageContent,
   type DashboardSearchParams,
 } from "@/components/dashboard/dashboard-page-content";
+import { HomeRscRefreshOnSearchParamsChange } from "@/components/home/home-rsc-refresh-on-search-params";
 import {
-  HOME_TAB_DASHBOARD,
   HOME_TAB_INBOX,
-  HomeWorkspaceTabs,
-  type HomeTabValue,
-} from "@/components/home/home-workspace-tabs";
+  firstSearchParamValue,
+  resolveHomeTab,
+} from "@/components/home/home-tab-utils";
+import { HomeWorkspaceTabs } from "@/components/home/home-workspace-tabs";
 import { InboxPageContent } from "@/components/inbox/inbox-page-content";
 
 export const dynamic = "force-dynamic";
 
 type HomeSearchParams = DashboardSearchParams & { tab?: string };
-
-function resolveTab(raw: unknown): HomeTabValue {
-  return raw === HOME_TAB_INBOX ? HOME_TAB_INBOX : HOME_TAB_DASHBOARD;
-}
 
 export default async function Home({
   searchParams,
@@ -28,9 +25,9 @@ export default async function Home({
   searchParams: Promise<HomeSearchParams> | HomeSearchParams;
 }) {
   const sp = searchParams instanceof Promise ? await searchParams : searchParams;
-  const tab = resolveTab(sp.tab);
+  const tab = resolveHomeTab(sp.tab);
   const dashboardParams: DashboardSearchParams = {
-    workspaceId: typeof sp.workspaceId === "string" ? sp.workspaceId : undefined,
+    workspaceId: firstSearchParamValue(sp.workspaceId),
   };
 
   return (
@@ -43,7 +40,7 @@ export default async function Home({
         bgcolor: "grey.50",
       }}
     >
-      <Box>
+      <Box sx={{ px: 2, pt: 2 }}>
         <Stack spacing={2} sx={{ mb: 2 }}>
           <Box>
             <Typography variant="h5" component="h1" fontWeight={700}>
@@ -60,11 +57,27 @@ export default async function Home({
               replies with AI—so your team can protect and improve how customers see your brand.
             </Typography>
           </Box>
-          <HomeWorkspaceTabs currentTab={tab} />
+          <Suspense
+            fallback={
+              <Box sx={{ borderBottom: 1, borderColor: "divider", minHeight: 48 }} aria-hidden />
+            }
+          >
+            <HomeWorkspaceTabs initialTab={tab} />
+            <HomeRscRefreshOnSearchParamsChange />
+          </Suspense>
         </Stack>
       </Box>
 
-      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+          px: 2,
+        }}
+      >
         {tab === HOME_TAB_INBOX ? (
           <InboxPageContent />
         ) : (

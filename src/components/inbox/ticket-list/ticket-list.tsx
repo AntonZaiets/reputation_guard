@@ -1,14 +1,10 @@
 "use client";
 
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CloseIcon from "@mui/icons-material/Close";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import CardHeader from "@mui/material/CardHeader";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Drawer from "@mui/material/Drawer";
@@ -22,44 +18,37 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InboxReview } from "@/types/inbox";
-
-const SNIPPET_LEN = 140;
-
-function snippet(text: string) {
-  const t = text.trim().replace(/\s+/g, " ");
-  if (t.length <= SNIPPET_LEN) return t;
-  return `${t.slice(0, SNIPPET_LEN)}…`;
-}
-
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
-}
-
-export type TicketListProps = {
-  reviews: InboxReview[];
-};
+import { DraftCard } from "@/components/molecules/draft-card/draft-card";
+import {
+  ticketListAiSummarySx,
+  ticketListAnalyzeButtonSx,
+  ticketListDetailHeaderSx,
+  ticketListDetailRootSx,
+  ticketListDetailScrollSx,
+  ticketListDrawerPaperSx,
+  ticketListEmptyStateTypographySx,
+  ticketListRepliesTitleSx,
+  ticketListReviewBodySx,
+  ticketListRowSx,
+  ticketListSectionOverlineSx,
+  ticketListSentimentChipSx,
+  ticketListSnackbarAlertSx,
+  ticketListTableContainerSx,
+  ticketListTableSx,
+} from "./ticket-list.styles";
+import type { TicketListProps } from "./ticket-list.types";
+import {
+  formatTicketListWhen,
+  ticketListSnippet,
+} from "./ticket-list.utils";
+import { useTicketListActions } from "./use-ticket-list-actions";
 
 export function TicketList({ reviews }: TicketListProps) {
   const [rows, setRows] = useState<InboxReview[]>(reviews);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    message: string;
-    severity: "success" | "error";
-  }>({ open: false, message: "", severity: "success" });
-  const [tooltipDraft, setTooltipDraft] = useState<string | null>(null);
 
   useEffect(() => {
     setRows(reviews);
@@ -72,109 +61,23 @@ export function TicketList({ reviews }: TicketListProps) {
 
   const closeDetail = useCallback(() => setSelectedId(null), []);
 
-  const runAnalyze = useCallback(async () => {
-    if (!selected) return;
-    const reviewId = selected.id;
-    setIsAnalyzing(true);
-    try {
-      const res = await fetch(`/api/reviews/${reviewId}/analyze`, {
-        method: "POST",
-      });
-      const data = (await res.json()) as {
-        error?: string;
-        id?: string;
-        reviewId?: string;
-        sentimentScore?: number;
-        isCritical?: boolean;
-        category?: string;
-        summary?: string;
-        draftEmpathetic?: string | null;
-        draftOfficial?: string | null;
-        draftAction?: string | null;
-        createdAt?: string;
-      };
-      if (!res.ok) {
-        setSnackbar({
-          open: true,
-          message: data.error ?? "Analysis failed",
-          severity: "error",
-        });
-        return;
-      }
-      if (
-        typeof data.id !== "string" ||
-        typeof data.reviewId !== "string" ||
-        typeof data.sentimentScore !== "number" ||
-        typeof data.isCritical !== "boolean" ||
-        typeof data.category !== "string" ||
-        typeof data.summary !== "string" ||
-        typeof data.createdAt !== "string"
-      ) {
-        setSnackbar({
-          open: true,
-          message: "Unexpected response from server",
-          severity: "error",
-        });
-        return;
-      }
-
-      const nextAnalysis: NonNullable<InboxReview["analysis"]> = {
-        id: data.id,
-        reviewId: data.reviewId,
-        sentimentScore: data.sentimentScore,
-        isCritical: data.isCritical,
-        category: data.category,
-        summary: data.summary,
-        draftEmpathetic: data.draftEmpathetic ?? null,
-        draftOfficial: data.draftOfficial ?? null,
-        draftAction: data.draftAction ?? null,
-        createdAt: data.createdAt,
-      };
-
-      setRows((prev) =>
-        prev.map((r) =>
-          r.id === reviewId ? { ...r, analysis: nextAnalysis } : r,
-        ),
-      );
-      setSnackbar({
-        open: true,
-        message: "Analysis ready",
-        severity: "success",
-      });
-    } catch {
-      setSnackbar({
-        open: true,
-        message: "Network error",
-        severity: "error",
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, [selected]);
-
-  const copyText = useCallback(async (text: string, draftKey: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setSnackbar({ open: true, message: "Copied!", severity: "success" });
-      setTooltipDraft(draftKey);
-      window.setTimeout(() => setTooltipDraft(null), 1500);
-    } catch {
-      setSnackbar({
-        open: true,
-        message: "Could not copy to clipboard",
-        severity: "error",
-      });
-    }
-  }, []);
+  const {
+    runAnalyze,
+    copyText,
+    isAnalyzing,
+    snackbar,
+    dismissSnackbar,
+    tooltipDraft,
+  } = useTicketListActions(selected, setRows);
 
   return (
     <Box>
       <TableContainer
         component={Paper}
         elevation={0}
-        sx={{ border: 1, borderColor: "divider", borderRadius: 2 }}
+        sx={ticketListTableContainerSx}
       >
-        <Table size="small" sx={{ minWidth: 650 }}>
+        <Table size="small" sx={ticketListTableSx}>
           <TableHead>
             <TableRow>
               <TableCell>Review</TableCell>
@@ -186,7 +89,11 @@ export function TicketList({ reviews }: TicketListProps) {
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3}>
-                  <Typography color="text.secondary" sx={{ py: 3 }} align="center">
+                  <Typography
+                    color="text.secondary"
+                    sx={ticketListEmptyStateTypographySx}
+                    align="center"
+                  >
                     No tickets yet. POST reviews to{" "}
                     <Typography component="span" variant="body2" fontFamily="monospace">
                       /api/reviews
@@ -201,18 +108,18 @@ export function TicketList({ reviews }: TicketListProps) {
                   key={row.id}
                   hover
                   onClick={() => setSelectedId(row.id)}
-                  sx={{ cursor: "pointer" }}
+                  sx={ticketListRowSx}
                 >
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {snippet(row.content)}
+                      {ticketListSnippet(row.content)}
                     </Typography>
                     <Typography variant="caption" color="text.disabled">
                       {row.source}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2">{formatWhen(row.createdAt)}</Typography>
+                    <Typography variant="body2">{formatTicketListWhen(row.createdAt)}</Typography>
                   </TableCell>
                   <TableCell>
                     <Stack direction="row" flexWrap="wrap" gap={0.75}>
@@ -229,10 +136,7 @@ export function TicketList({ reviews }: TicketListProps) {
                             : "No score"
                         }
                         variant="filled"
-                        sx={{
-                          bgcolor: "primary.light",
-                          color: "primary.contrastText",
-                        }}
+                        sx={ticketListSentimentChipSx}
                       />
                       {row.analysis?.isCritical ? (
                         <Chip size="small" label="Critical" color="error" />
@@ -252,25 +156,17 @@ export function TicketList({ reviews }: TicketListProps) {
         onClose={closeDetail}
         slotProps={{
           paper: {
-            sx: {
-              width: { xs: "100%", sm: 480, md: 560 },
-              maxWidth: "100vw",
-            },
+            sx: ticketListDrawerPaperSx,
           },
         }}
       >
         {selected ? (
-          <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+          <Box sx={ticketListDetailRootSx}>
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="space-between"
-              sx={{
-                px: 2,
-                py: 1.5,
-                borderBottom: 1,
-                borderColor: "divider",
-              }}
+              sx={ticketListDetailHeaderSx}
             >
               <Typography variant="h6" component="h2" fontWeight={600}>
                 Reply builder
@@ -280,27 +176,31 @@ export function TicketList({ reviews }: TicketListProps) {
               </IconButton>
             </Stack>
 
-            <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
+            <Box sx={ticketListDetailScrollSx}>
               <Typography variant="overline" color="text.secondary">
                 Original review
               </Typography>
-              <Typography variant="body1" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
+              <Typography variant="body1" sx={ticketListReviewBodySx}>
                 {selected.content}
               </Typography>
               <Stack direction="row" gap={1} flexWrap="wrap" sx={{ mt: 1.5 }}>
                 <Chip size="small" label={selected.source} variant="outlined" />
-                <Chip size="small" label={formatWhen(selected.createdAt)} variant="outlined" />
+                <Chip
+                  size="small"
+                  label={formatTicketListWhen(selected.createdAt)}
+                  variant="outlined"
+                />
               </Stack>
 
-              <Typography variant="overline" color="text.secondary" sx={{ mt: 3, display: "block" }}>
+              <Typography variant="overline" color="text.secondary" sx={ticketListSectionOverlineSx}>
                 AI summary
               </Typography>
-              <Typography variant="body2" sx={{ mt: 0.5 }}>
+              <Typography variant="body2" sx={ticketListAiSummarySx}>
                 {selected.analysis?.summary ??
                   "Run analysis to generate a summary and reply drafts."}
               </Typography>
 
-              <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }} fontWeight={600}>
+              <Typography variant="h6" sx={ticketListRepliesTitleSx} fontWeight={600}>
                 AI suggested replies
               </Typography>
 
@@ -318,13 +218,7 @@ export function TicketList({ reviews }: TicketListProps) {
                       <AutoAwesomeIcon />
                     )
                   }
-                  sx={{
-                    py: 2,
-                    borderRadius: 2,
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    boxShadow: 2,
-                  }}
+                  sx={ticketListAnalyzeButtonSx}
                 >
                   {isAnalyzing ? "Analyzing…" : "Ask AI to Analyze & Reply"}
                 </Button>
@@ -364,73 +258,18 @@ export function TicketList({ reviews }: TicketListProps) {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={2200}
-        onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+        onClose={dismissSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          onClose={dismissSnackbar}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: "100%" }}
+          sx={ticketListSnackbarAlertSx}
         >
           {snackbar.message}
         </Alert>
       </Snackbar>
     </Box>
-  );
-}
-
-function DraftCard({
-  title,
-  subtitle,
-  text,
-  copyKey,
-  tooltipDraft,
-  onCopy,
-}: {
-  title: string;
-  subtitle: string;
-  text: string | null;
-  copyKey: string;
-  tooltipDraft: string | null;
-  onCopy: (text: string, key: string) => void;
-}) {
-  const body = text?.trim() || "No draft generated.";
-  const canCopy = Boolean(text?.trim());
-
-  return (
-    <Card variant="outlined" sx={{ borderRadius: 2 }}>
-      <CardHeader
-        title={title}
-        subheader={subtitle}
-        action={
-          <Tooltip
-            open={tooltipDraft === copyKey}
-            title="Copied!"
-            placement="left"
-            disableFocusListener
-            disableTouchListener
-          >
-            <span>
-              <IconButton
-                size="small"
-                aria-label={`Copy ${title} draft`}
-                disabled={!canCopy}
-                onClick={() => canCopy && text && onCopy(text, copyKey)}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        }
-        titleTypographyProps={{ variant: "subtitle1", fontWeight: 600 }}
-        subheaderTypographyProps={{ variant: "caption" }}
-      />
-      <CardContent sx={{ pt: 0 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
-          {body}
-        </Typography>
-      </CardContent>
-    </Card>
   );
 }
