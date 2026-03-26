@@ -14,13 +14,11 @@ export type CategoryCount = {
 
 export type DashboardStats = {
   totalReviews: number;
-  /** Reviews in this workspace with no AnalysisResult yet (charts need AI rows). */
   pendingAnalysisCount: number;
   averageSentiment: number | null;
   criticalIssuesCount: number;
   sentimentByDay: SentimentTrendPoint[];
   categoryCounts: CategoryCount[];
-  /** When true, metrics are placeholders and the database was unreachable. */
   dbUnavailable: boolean;
   dbMessage: string | null;
 };

@@ -65,16 +65,6 @@ export function WorkspaceSelector({
   return (
     <>
       <Box sx={workspaceSelectorRootBoxSx}>
-        <Typography
-          variant="caption"
-          color={darkSurface ? undefined : "text.secondary"}
-          sx={{
-            ...workspaceSelectorLabelSx,
-            ...(darkSurface ? { color: "rgba(255,255,255,0.65)" } : {}),
-          }}
-        >
-          Current Company
-        </Typography>
         <FormControl size="small" fullWidth disabled={Boolean(loadError) && workspaces.length === 0}>
           <InputLabel
             id="workspace-select-label"

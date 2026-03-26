@@ -149,7 +149,7 @@ export function HomeWorkspaceClient({
         component="aside"
         aria-label="Main navigation"
         sx={{
-          width: { xs: "100%", sm: 268 },
+          width: { xs: "100%", sm: 240 },
           flexShrink: 0,
           px: 2,
           pt: 2,

@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Suspense } from "react";
 import { CategoryDistributionChart } from "@/components/charts/category-distribution-chart";
@@ -230,28 +231,26 @@ export async function DashboardPageContent({
             </Grid>
           </Grid>
 
-          <Grid container spacing={2.25} sx={{ mb: { xs: 2, sm: 3 } }}>
-            <Grid size={{ xs: 12, lg: 12, xl: 5 }}>
-              <DashboardWelcomeCard workspaceLabel={activeWorkspace?.brandKeyword ?? null} />
-            </Grid>
-            <Grid size={{ xs: 12, lg: 6, xl: 4 }}>
-              <SentimentSatisfactionCard
-                averageSentiment={stats.averageSentiment}
-                hasAnalyses={hasAnalyses}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, lg: 6, xl: 3 }}>
-              <ReputationPulseCard
-                totalReviews={stats.totalReviews}
-                criticalIssuesCount={stats.criticalIssuesCount}
-                averageSentiment={stats.averageSentiment}
-                hasAnalyses={hasAnalyses}
-              />
-            </Grid>
-          </Grid>
+          <Stack spacing={{ xs: 2, sm: 3 }} sx={{ mb: { xs: 2, sm: 3 } }}>
+            {/* Row 1: Welcome back + Sentiment index */}
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2.25}
+              sx={{ alignItems: "stretch" }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <DashboardWelcomeCard workspaceLabel={activeWorkspace?.brandKeyword ?? null} />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <SentimentSatisfactionCard
+                  averageSentiment={stats.averageSentiment}
+                  hasAnalyses={hasAnalyses}
+                />
+              </Box>
+            </Stack>
 
-          <Grid container spacing={{ xs: 2, sm: 3 }}>
-            <Grid size={{ xs: 12, lg: 7 }}>
+            {/* Row 2: Sentiment trend (full width) */}
+            <Box sx={{ width: "100%", minWidth: 0 }}>
               <Card
                 elevation={0}
                 sx={{
@@ -273,31 +272,47 @@ export async function DashboardPageContent({
                   />
                 </CardContent>
               </Card>
-            </Grid>
-            <Grid size={{ xs: 12, lg: 5 }}>
-              <Card
-                elevation={0}
-                sx={{
-                  ...visionDashboardCardSx,
-                  height: "100%",
-                }}
-              >
-                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-                  <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: "#fff" }}>
-                    Issues by category
-                  </Typography>
-                  <Typography variant="body2" sx={{ mb: 2, color: VISION.text.main }}>
-                    Distribution of AI-assigned categories (donut + bar).
-                  </Typography>
-                  <CategoryDistributionChart
-                    data={stats.categoryCounts}
-                    rawReviewCount={stats.totalReviews}
-                    chartVariant="dark"
-                  />
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+            </Box>
+
+            {/* Row 3: Reputation pulse + Issues by category */}
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={{ xs: 2, sm: 3 }}
+              sx={{ alignItems: "stretch" }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <ReputationPulseCard
+                  totalReviews={stats.totalReviews}
+                  criticalIssuesCount={stats.criticalIssuesCount}
+                  averageSentiment={stats.averageSentiment}
+                  hasAnalyses={hasAnalyses}
+                />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    ...visionDashboardCardSx,
+                    height: "100%",
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    <Typography variant="h6" fontWeight={600} gutterBottom sx={{ color: "#fff" }}>
+                      Issues by category
+                    </Typography>
+                    <Typography variant="body2" sx={{ mb: 2, color: VISION.text.main }}>
+                      Distribution of AI-assigned categories (donut + bar).
+                    </Typography>
+                    <CategoryDistributionChart
+                      data={stats.categoryCounts}
+                      rawReviewCount={stats.totalReviews}
+                      chartVariant="dark"
+                    />
+                  </CardContent>
+                </Card>
+              </Box>
+            </Stack>
+          </Stack>
         </Box>
       </Box>
 
